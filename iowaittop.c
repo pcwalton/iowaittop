@@ -64,10 +64,23 @@ bool get_iowait_count(const char *path, unsigned *count)
 
 bstring name_of(pid_t pid)
 {
-    bstring path = bformat("/proc/%u/status", (unsigned)pid);
+    bstring path = bformat("/proc/%u/cmdline", (unsigned)pid);
     if (!path)
         return NULL;
     FILE *f = fopen(bdata(path), "r");
+    bdestroy(path);
+    if (f) {
+        bstring result = bgets((bNgetc)fgetc, f, '\n');
+        fclose(f);
+        if (result && blength(result))
+            return result;
+    }
+
+    path = bformat("/proc/%u/status", (unsigned)pid);
+    if (!path)
+        return NULL;
+    f = fopen(bdata(path), "r");
+    bdestroy(path);
     if (!f)
         return NULL;
 
@@ -82,6 +95,7 @@ bstring name_of(pid_t pid)
 
         result = bmidstr(line, blength(&name_str), blength(line) -
             blength(&name_str) - 1);
+        break;
     }
 
     fclose(f);
@@ -100,7 +114,7 @@ void display(const_bstring deltas)
         struct delta *delta = ((struct delta *)bdata(deltas)) + i;
 
         bstring name = name_of(delta->pid);
-        printf("%12u %6u %s\n", delta->iowait_count_delta,
+        printf("%12u  %6u  %s\n", delta->iowait_count_delta,
             (unsigned)delta->pid, name ? bdata(name) : "???");
         if (name)
             bdestroy(name);
