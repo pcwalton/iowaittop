@@ -53,9 +53,11 @@ bool get_iowait_count(const char *path, unsigned *count)
     bool ok = false;
     while ((line = bgets((bNgetc)fgetc, f, '\n'))) {
         if (sscanf(bdata(line), "se.iowait_count : %u", count)) {
+            bdestroy(line);
             ok = true;
             break;
         }
+        bdestroy(line);
     }
 
     fclose(f);
@@ -95,6 +97,7 @@ bstring name_of(pid_t pid)
 
         result = bmidstr(line, blength(&name_str), blength(line) -
             blength(&name_str) - 1);
+        bdestroy(line);
         break;
     }
 
@@ -170,6 +173,7 @@ int main()
         qsort(bdata(deltas), blength(deltas) / sizeof(struct delta),
             sizeof(struct delta), compare_deltas);
         display(deltas);
+        bdestroy(deltas);
 
         qsort(bdata(tasks), blength(tasks) / sizeof(struct task),
             sizeof(struct task), compare_tasks);
